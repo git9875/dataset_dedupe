@@ -1,4 +1,4 @@
-# Media Dedupe and Captions
+# Dataset Dedupe
 Use this Electron app to compare image directories and captions. By comparing images as well as captions, it will help you clean up redundant media files and old captions.
 
 ## Overview
@@ -8,8 +8,8 @@ Video files will be supported in the future.
 
 ## Installation
 ```bash
-git clone https://github.com/git9875/dataset-dedupe.git
-cd dataset-dedupe
+git clone https://github.com/git9875/dataset_dedupe.git
+cd dataset_dedupe
 npm install
 npx electron .
 ```
