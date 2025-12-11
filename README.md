@@ -1,5 +1,6 @@
 # Dataset Dedupe
 Use this Electron app to compare image directories and captions. By comparing images as well as captions, it will help you clean up redundant media files and old captions.
+You can use the optional [VLM Caption Server](https://github.com/git9875/vlm_caption_server) so that AI can automatically generate captions for your images.
 
 ## Overview
 This app is an embedded web application for managing local image files and dataset caption files. It includes deduplication and AI auto-captioning features.
