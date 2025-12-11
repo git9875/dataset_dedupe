@@ -8,8 +8,8 @@ Video files will be supported in the future.
 
 ## Installation
 ```bash
-git clone https://github.com/git9875/media-dedupe-and-captions.git
-cd media-dedupe-and-captions
+git clone https://github.com/git9875/dataset-dedupe.git
+cd dataset-dedupe
 npm install
 npx electron .
 ```
