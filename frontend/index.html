@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Media Dataset Editor</title>
+  <link rel="stylesheet" href="css/picnic.min.css" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script src="preload.js"></script>
+</head>
+<body>
+  <div id="app">
+
+    <div class="flex two">
+      <div><input type="text" id="left-directory" placeholder="Enter first directory path" aria-label="Enter first directory path" class="small" /></div>
+      <div><input type="text" id="right-directory" placeholder="Enter second directory path" aria-label="Enter second directory path" class="small" /></div>
+      <div><input type="search" id="searchBox" placeholder="Search filter media files" aria-label="Enter search text to filter the media files" class="small" /></div>
+      <div><button id="start-button" class="small tertiary">Compare <img src="icons/compare1.svg" alt="compare icon" class="svgrepro-icon"/></button></div>
+    </div>
+    <div class="flex two">
+      <div><button id="update-captions" class="small success">Save Edited Captions <img src="icons/save.svg" alt="save icon" class="svgrepro-icon"/></button></div>
+
+      <div id="ai-caption-row">
+        <h4>AI Captions</h4>
+        <div class="flex four">
+          <select id="ai-model-select" aria-label="Select AI model" class="three-fourth">
+            <option value="" disabled selected>Select a model</option>
+          </select>
+          <button id="load-ai-model" class="fourth">Load Model <img src="icons/ai_brain.svg" alt="ai brain icon" class="svgrepro-icon bigger"/></button>
+        </div>
+        <div class="flex four">
+          <select id="ai-prompt-select" aria-label="Select AI prompt" class="three-fourth">
+            <option value="" disabled selected>Select a prompt</option>
+          </select>
+          <label for="ai-prompt-select" class="fourth">Prompt</label>
+        </div>
+        <div id="load-ai-model-message"></div>
+      </div>
+    </div>
+
+    <div id="scrollablePanel">
+      <table id="mediaTable" aria-label="Media Directory Comparison Table" class="full">
+        <thead>
+          <tr>
+            <th aria-label="left directory column">Left Directory <button id="auto-captions-left" class="small warning">Get AI Captions <img src="icons/file_ai.svg" alt="file ai icon" class="svgrepro-icon"/></button></th>
+            <th aria-label="right directory column">Right Directory <button id="auto-captions-right" class="small warning">Get AI Captions <img src="icons/file_ai.svg" alt="file ai icon" class="svgrepro-icon"/></button></th>
+          </tr>
+          <tr id="progress-container">
+            <td aria-label="left directory column">
+              <progress id="progress-bar-left" value="0" max="100">0%</progress>
+              <div id="progress-text-left" class="progress-text"></div>
+              <div id="progress-extra-left" class="progress-extra"></div>
+            </td>
+            <td aria-label="right directory column">
+              <progress id="progress-bar-right" value="0" max="100">0%</progress>
+              <div id="progress-text-right" class="progress-text"></div>
+              <div id="progress-extra-right" class="progress-extra"></div>
+            </td>
+          </tr>
+        </thead>
+        <tbody id="mediaTableBody">
+          <!-- Media file components will be inserted here dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    
+    <!-- <label for="preferences-modal-control" class="button">Show Preferences</label> -->
+    <div class="modal" aria-labelledby="preferences-modal-header" id="preferences-modal">
+      <input type="checkbox" id="preferences-modal-control">
+      <label for="preferences-modal-control" class="overlay"></label>
+      <article>
+        <header>
+          <h3 id="preferences-modal-header">Preferences</h3>
+          <label for="preferences-modal-control" class="close">&times;</label>
+        </header>
+
+        <section class="content">
+          <div class="full row">
+            <label for="preferences-left-directory">Left Directory</label>
+            <input type="text" id="preferences-left-directory" placeholder="Enter first directory path" aria-label="Enter first directory path" />
+          </div>
+          <div class="full row">
+            <label for="preferences-right-directory">Right Directory</label>
+            <input type="text" id="preferences-right-directory" placeholder="Enter second directory path" aria-label="Enter second directory path" />
+          </div>
+          <div class="flex three row">
+            <div>Delete Action</div>
+            <div><label><input type="radio" id="preferences-delete-delete" name="preferences-delete" value="delete" /> <span class="checkable">Delete</span></label></div>
+            <div><label><input type="radio" id="preferences-delete-trash" name="preferences-delete" value="trash" /> <span class="checkable">Trash</span></label></div>
+            <div class="info-below full">Trash directory will be in the 'trash' subdirectory of the media directory.</div>
+          </div>
+          <div class="flex two row">
+            <div><label><input type="checkbox" id="preferences-check-local-caption-server" name="preferences-check-caption-server" value="true" /> <span class="checkable">Use AI: VLM Caption Server</span></label></div>
+            <div>
+              <input type="text" id="preferences-url-local-caption-server" class="ai-enabled-dependent" placeholder="URL for local caption server" aria-label="URL for local caption server" value="http://127.0.0.1:8000" />
+            </div>
+          </div>
+          <div class="full row ai-enabled-dependent">
+            <div><label><input type="checkbox" id="preferences-check-caption-preview-only" name="preferences-check-caption-preview-only" value="true" /> <span class="checkable">AI Caption Preview Only, DO NOT UPDATE AUTOMATICALLY</span></label></div>
+          </div>
+          <div class="row ai-enabled-dependent">
+            <div class="flex two ai-preview-dependent">
+              <div>
+                How to update current captions:<br />
+                <select id="preferences-ai-captionbox-update-method">
+                  <option value="replace" selected>Replace Existing Caption</option>
+                  <option value="prepend">Prepend to Existing Caption</option>
+                  <option value="append">Append to Existing Caption</option>
+                </select>
+              </div>
+              <div id="preferences-ai-captionbox-separator" class="flex">
+                Separate old &amp; new captions with:<br />
+                <select id="preferences-ai-captionbox-separator-select">
+                  <option value="space" selected>Space</option>
+                  <option value="newline">New Line</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <footer>
+          <button id="preferences-save" class="success">Save <img src="icons/save.svg" alt="save icon" class="svgrepro-icon"/></button>
+          <label for="preferences-modal-control" class="button dangerous">Cancel</label>
+        </footer>
+
+      </article>
+    </div>
+
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
