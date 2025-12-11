@@ -63,6 +63,8 @@ To open up the Preferences dialog, click on the Preferences menu button in the t
     - Append: appends the AI caption after existing caption
 - Separator old & new captions with: If you selected Prepend or Append before, how do you want to separate the old and new captions, a space or a new line? (Yes, I'm aware that this feature may be useless for most, but it could be useful for some.)
 
+When you click the Save button, your preferences get updated in the `app_config.json` file at the base of this project. You'll get an error message if you enable AI and it cannot detect the VLM Caption Server through the `http://localhost:8000/` address.
+
 ![Preferences Screenshot](config_dialog_screenshot.png)
 
 ## AI Captioning
