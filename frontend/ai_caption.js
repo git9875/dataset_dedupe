@@ -11,7 +11,6 @@ async function getModelsListFromAiCaptionServer(captionAiEnabled, captionAiUrl) 
     const url = joinUrlPath(captionAiUrl, 'available_models');
     const response = await fetch(url);
     if (!response.ok) {
-      // throw new Error(`HTTP error! status: ${response.status}`);
       return [];
     }
     const models = await response.json();
@@ -30,7 +29,6 @@ async function getPromptsListFromAiCaptionServer(captionAiEnabled, captionAiUrl)
     const url = joinUrlPath(captionAiUrl, 'available_prompts');
     const response = await fetch(url);
     if (!response.ok) {
-      // throw new Error(`HTTP error! status: ${response.status}`);
       return [];
     }
     const prompts = await response.json();

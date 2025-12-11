@@ -1,15 +1,11 @@
-// const fs = require('fs');
 const path = require('path');
 const store = require('./store');
 const fileOps = require('./fileops');
-// const utils = require('./frontend/utils');
 const configManager = require('./config_manager');
 const aiCaption = require('./ai_caption');
 
 // (personal preference) I like to shorten common HTML DOM function calls to make it easier to skim and require fewer key strokes. (simpler and more concise)
 const getElId = document.getElementById.bind(document);
-// const queryOne = document.querySelector.bind(document);
-// const queryAll = document.querySelectorAll.bind(document);
 const queryClass = document.getElementsByClassName.bind(document);
 const makeClickEvent = function(el, fn) { el.addEventListener('click', fn); }
 
@@ -121,10 +117,8 @@ function createMediaComponent(fileContainer, side) {
   const nameEdit = document.createElement('input');
   nameEdit.type = 'text';
   nameEdit.className = 'name-text';
-  nameEdit.value = fileBaseName; // mediaFile.name;
-  // prevent user accidentally changing the extension by only editing the file base name
+  nameEdit.value = fileBaseName;
   nameEdit.id = idPrefix+'nametxtedit';
-  // nameEdit.setAttribute('data-filepath', mediaFile.path);
   nameEdit.setAttribute('placeholder', 'file base name only');
   nameEdit.addEventListener('keyup', function(event) {
     event.preventDefault();
@@ -217,12 +211,8 @@ async function renderMediaTable() {
   store.replaceMatchedFiles( newMatchedFiles );
   const matchedFiles = store.getMatchedFiles();
   const fileHashes = {};
-  // console.log('twoDirs', twoDirs);
-  // console.log('matchedFiles', matchedFiles);
 
   for (const fileBaseName in matchedFiles) {
-    // if (! fileBaseName.includes(searchFilter)) { continue; }
-
     const row = document.createElement('tr');
     const fileHash = matchedFiles[fileBaseName]['fileHash'];
     fileHashes[fileHash] = fileBaseName;
@@ -238,7 +228,6 @@ async function renderMediaTable() {
         copyCellBtn.setAttribute('aria-label', "Copy this media file and caption to the other side");
         copyCellBtn.setAttribute('data-tooltip', "Copy this media file and caption to the other side");
         copyCellBtn.id = `${fileHash}-${side}-copycell`;
-        // copyCellBtn.setAttribute('data-filebase', fileBaseName);
         copyCellBtn.classList.add("tertiary", "small");
         makeClickEvent(copyCellBtn, copyCellToOtherSide);
 
@@ -267,7 +256,6 @@ async function renderMediaTable() {
         copyCellBtn.setAttribute('aria-label', "Copy this media file and caption to the other side");
         copyCellBtn.setAttribute('data-tooltip', "Copy this media file and caption to the other side");
         copyCellBtn.id = `${fileHash}-${side}-copycell`;
-        // copyCellBtn.setAttribute('data-filebase', fileBaseName);
         copyCellBtn.classList.add("tertiary", "small");
         makeClickEvent(copyCellBtn, copyCellToOtherSide);
 
@@ -295,12 +283,10 @@ async function renderMediaTable() {
 function copyTextFromFileIntoTextArea(fileHash, side, textFilePath) {
   const idPrefix = `${fileHash}-${side}-`;
   const captionId = idPrefix + 'caption';
-  // console.warn('caption', side, fileBaseName, captionId);
 
   // read from text file and put text in textarea
   fileOps.getTextFileContents(textFilePath, captionId, function(content) {
     const captionBox = getElId(captionId);
-    // console.log('caption text area attribute', captionId, content);
     captionBox.value = content;
     captionBox.classList.remove('dirty-caption');
     const textFile = getFileFromHashSide(fileHash, side, true);
@@ -326,7 +312,6 @@ const deleteBtnFunction = async function(event) {
   const [fileHash, side, idSuffix] = getIdHashParts(event.target.id);
   const mediaFile = getFileFromHashSide(fileHash, side);
   const filePath = mediaFile['path'];
-  // const filePath = event.target.dataset.filepath;
 
   fileOps.deleteFile(filePath, function() {
     containerId = event.target.id.replace('delete', 'cell');
@@ -336,7 +321,6 @@ const deleteBtnFunction = async function(event) {
     const textFile = getFileFromHashSide(fileHash, side, true);
     if (textFile) {
 	    const textFilePath = textFile['path'];
-	    // const textFilePath = filePath.substring(0, filePath.lastIndexOf('.')) + '.txt';
 	    fileOps.deleteFile(textFilePath, function(){});
 	}
   });
@@ -377,19 +361,13 @@ const renameFileFunction = function(event) {
   const fileHashes = store.getFileHashes();
   const [fileHash, side, idSuffix] = getIdHashParts(event.target.id);
   const mediaFile = getFileFromHashSide(fileHash, side);
-  // const idTokens = event.target.id.split('-');
-  // const fileHash = idTokens[0]; // keeping fileHash the same
-  // const side = idTokens[1];
   const fileBaseName = fileHashes[fileHash];
-  const matchedFile = matchedFiles[fileBaseName];
-  const mediaFilePath = mediaFile['path']; // event.target.dataset.filepath;
-  const mediaFileOldName = mediaFile['name']; // path.basename(mediaFilePath);
+  const mediaFilePath = mediaFile['path'];
+  const mediaFileOldName = mediaFile['name'];
   const newFileBaseName = event.target.value;
   const mediaFileNewName = mediaFileNewName + mediaFileOldName.substring(mediaFileOldName.lastIndexOf('.')); // event.target.value;
   const nameLabelId = event.target.id.replace('nametxtedit', 'namelabel');
   const nameLabel = getElId(nameLabelId);
-  // const fileBaseName = mediaFileOldName.substring(0, mediaFileOldName.lastIndexOf('.'));
-  // const newFileBaseName = mediaFileNewName.substring(0, mediaFileNewName.lastIndexOf('.'));
   const directory = path.dirname(mediaFilePath);
 
   if (mediaFileOldName == mediaFileNewName) {
@@ -400,7 +378,6 @@ const renameFileFunction = function(event) {
 
   fileOps.renameFile(mediaFilePath, mediaFileNewName, function(){
     event.target.style.display = 'none';
-    // TODO: uncomment this after testing
     nameLabel.textContent = nameLabel.textContent.replace(mediaFileOldName, mediaFileNewName);
     nameLabel.style.display = 'block';
 
@@ -419,10 +396,8 @@ const renameFileFunction = function(event) {
     
     fileHashes[fileHash] = newFileBaseName;
 
-    // const fileHash = matchedFiles[newFileBaseName]['fileHash'];
     const destIdPrefix = `${fileHash}-${side}-`;
     const deleteBtn = getElId(destIdPrefix+'delete');
-    // deleteBtn.setAttribute('data-filepath', destMediaPath);
 
     event.target.dataset.filepath = directory+mediaFileNewName;
   });
@@ -433,8 +408,6 @@ function copyCellToOtherSide(event) {
   const fileHashes = store.getFileHashes();
   const copyCellBtnId = event.target.id;
   const [fileHash, side, copyBtnSuffix] = getIdHashParts(copyCellBtnId);
-  // const [fileHash, side, copyBtnSuffix] = copyCellBtnId.split('-');
-  // const fileBaseName = event.target.dataset.filebase;
   const fileBaseName = fileHashes[fileHash];
   const otherSide = (side === 'right') ? 'left' : 'right';
   const cellId = `${fileHash}-${side}-cell`;
@@ -458,7 +431,6 @@ function copyCellToOtherSide(event) {
   originalCell.parentElement.replaceChild(clonedCell, otherCell);
 
   // copy the media file
-  // const sourceMedia = matchedFiles[fileBaseName][side+'media'];
   const sourceMedia = getFileFromHashSide(fileHash, side);
   const sourceMediaPath = sourceMedia.path;
   const destMediaPath = path.join(destDirectory, sourceMedia.name);
@@ -497,7 +469,6 @@ function copyCellToOtherSide(event) {
     renameFileFunction(event);
   });
 
-  // deleteBtn.setAttribute('data-filepath', destMediaPath);
 }
 
 function changeAllIdSides(node, side, otherSide) {
@@ -515,7 +486,7 @@ function changeAllIdSides(node, side, otherSide) {
 function getIdHashParts(idHash) {
 	const tokens = idHash.split('-', 3);
 	return [ tokens[0], tokens[1], tokens[2] ];
-} // const [fileHash, side, idSuffix] = getIdHashParts(idHash);
+}
 
 function getFileFromHashSide(fileHash, side, isText) {
   const matchedFiles = store.getMatchedFiles();

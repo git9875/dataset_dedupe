@@ -2,7 +2,6 @@ const { ipcRenderer } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { platform } = require('node:process');
-// const dirSeparator = (platform == 'win32') ? '\\' : '/';
 const utils = require('./utils');
 
 
@@ -25,7 +24,6 @@ function getTextFileContents(filePath, captionId, cb) {
         if (response.error) {
             document.getElementById('fileContent').innerText = `Error: ${response.error}`;
         } else {
-            // document.getElementById('fileContent').innerText = response.content;
             cb(response.content);
         }
     });
@@ -42,7 +40,6 @@ async function writeTextFileContents(filePath, content, cb) {
 }
 
 async function copyFile(sourceFile, destinationFile, cb) {
-    // const result = await ipcRenderer.invoke('copy-file', { sourceFile, destinationFile });
     const channelId = utils.simpleHash(destinationFile);
     ipcRenderer.send('copy-file', { sourceFile, destinationFile, channelId });
     ipcRenderer.once('copy-file-response ' + channelId, (event, response) => {
@@ -118,9 +115,7 @@ function matchLeftRightDirs(twoDirs, searchBoxStr) {
 
         if (!(fileBaseName in leftFilesFilter)) { continue; }
 
-        // console.log('create matchedFiles a', fileBaseName, matchedFiles);
         if (! (fileBaseName in matchedFiles)) {
-            // console.log('create matchedFiles b', fileBaseName);
             matchedFiles[fileBaseName] = { 'fileBaseName':fileBaseName, 'fileHash': utils.simpleHash(fileBaseName) };
         }
 
@@ -128,7 +123,6 @@ function matchLeftRightDirs(twoDirs, searchBoxStr) {
             matchedFiles[fileBaseName]['lefttext'] = f;
         }
         else if (ext == 'png' || ext == 'jpg' || ext == 'gif' || ext == 'mp4' || ext == 'mov') {
-            // console.log('matchedFiles leftmedia', fileBaseName);
             matchedFiles[fileBaseName]['leftmedia'] = f;
         }
     }

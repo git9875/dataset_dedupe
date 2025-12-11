@@ -3,7 +3,6 @@ const fs = require('fs');
 const { copyFile, readFileSync } = require('fs');
 const path = require('path');
 const { platform } = require('node:process');
-// const dirSeparator = (platform == 'win32') ? '\\' : '/';
 const nodeConsole = require('console');
 const myConsole = new nodeConsole.Console(process.stdout, process.stderr);
 let configuration = {};
@@ -59,9 +58,7 @@ ipcMain.handle('save-text-file', async (event, { filePath, content }) => {
 });
 
 ipcMain.on('copy-file', async (event, { sourceFile, destinationFile, channelId }) => {
-  // myConsole.log('main.js copy-file', sourceFile, destinationFile);
   copyFile(sourceFile, destinationFile, (err) => {
-      // myConsole.log('main.js copyFile', sourceFile, destinationFile, err);
       if (err) {
           myConsole.error('Error copying file asynchronously:', destinationFile, err);
           event.reply('copy-file-response '+channelId, { success: false, message: err.message });
@@ -120,8 +117,6 @@ function createDirectoryIfNotExistsSync(directoryPath) {
     } catch (error) {
       myConsole.error(`Error creating directory ${directoryPath}:`, error);
     }
-  } else {
-    // myConsole.log(`Directory already exists: ${directoryPath}`);
   }
 }
 
@@ -155,7 +150,6 @@ function getConfig() {
     config.rightDirectory = commandLineArgs[1];
   }
 
-  // default value
   if (! ('delete' in config)) {
     config['delete'] = 'delete';
   }
@@ -181,7 +175,6 @@ function createWindow() {
     win.webContents.send('configuration', configuration);
   });
 
-  // const name = app.getName();
   const menuTemplate = [
     {
       label: 'Preferences',
@@ -193,7 +186,7 @@ function createWindow() {
   win.setMenu(menu);
 
   win.loadFile('frontend/index.html');
-  win.webContents.openDevTools();
+  // win.webContents.openDevTools(); // uncomment to enable debugging
 }
 
 

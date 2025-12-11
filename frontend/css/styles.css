@@ -1,52 +1,3 @@
-/*
-body {
-  margin: 0;
-  padding: 0;
-  font-family: Arial, sans-serif;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-#app {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-#controls {
-  padding: 10px;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-}
-
-#searchBox {
-  flex: 1;
-  padding: 5px;
-}
-
-#scrollablePanel {
-  flex: 1;
-  overflow-y: auto;
-  border: 1px solid #ccc;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-th, td {
-  width: 50%;
-  border: 1px solid #ccc;
-  padding: 0;
-}
-*/
-
 body { font-size: 0.9em; }
 
 #mediaTableBody {
@@ -113,10 +64,3 @@ img.svgrepro-icon.bigger { width: 18px; height: 18px; }
 .info-below { margin-top:-5px ; font-size: 0.8em; color: #666; }
 #ai-caption-row select + button { margin-top:0px; }
 #ai-caption-row select + label { margin-top:5px; }
-
-/* table { display:initial; } */ /* override mini CSS */
-
-/* .top-controls input { width:100%; font-size:small; }
-
-@media screen and (min-width: 320px) { .card { max-width:500px; } }
-[type="checkbox"].modal+div .card { max-height:60vh; } */

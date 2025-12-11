@@ -1,10 +1,10 @@
 {
-    "leftDirectory": "C:\\Users\\searo\\Downloads\\test\\2001-05-31_b",
-    "rightDirectory": "C:\\Users\\searo\\Downloads\\test\\2001-05-31_a",
-    "delete": "trash",
+    "leftDirectory": "",
+    "rightDirectory": "",
+    "delete": "delete",
     "captionAiUrl": "http://localhost:8000/",
     "captionAiEnabled": false,
-    "previewOnlyAiCaptions": true,
-    "captionBoxAiUpdateMethod": "prepend",
+    "previewOnlyAiCaptions": false,
+    "captionBoxAiUpdateMethod": "replace",
     "captionBoxSeparator": "newline"
 }
