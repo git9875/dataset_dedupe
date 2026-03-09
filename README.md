@@ -1,9 +1,9 @@
-# Dataset Dedupe
+# Dataset Dedupe and Caption Editor
 Use this Electron app to compare image directories and captions. By comparing images as well as captions, it will help you clean up redundant media files and old captions.
 You can use the optional [VLM Caption Server](https://github.com/git9875/vlm_caption_server) so that AI can automatically generate captions for your images.
 
 ## Overview
-This app is an embedded web application for managing local image files and dataset caption files. It includes deduplication and AI auto-captioning features.
+This app is an embedded web application for managing local image files and dataset caption files. It includes deduplication, caption text editing, and AI auto-captioning features.
 
 Video files will be supported in the future.
 
@@ -20,7 +20,9 @@ npx electron .
 When starting the app with `npx electron .`, the two directory text boxes will be empty, unless the two directories are set in your preferences (configuration). You can override this by setting the two directories on the command line.
 ```npx electron . "C:\path\to\left\directory" "C:\path\to\right\directory"```
 
-With the two directories set in the app, click the Compare button to start comparing the two directories. You'll see the images displayed side by side in the table below. You can filter these images by name by with the search box to the left of the Compare button, and clicking Compare again.
+With the two directories set in the app, click the Display button to start comparing the two directories. You'll see the images displayed side by side in the table below. You can filter these images by name by with the search box to the left of the Display button, and clicking Display again.
+
+Only the left directory is required. The right directory is used for comparing images and captions by image file name.
 
 The "Save Edited Captions" button is used to save all of the edited (changed) captions to their respective text files.
 
@@ -46,7 +48,17 @@ The images from both directories will be displayed in the table below, with two 
 - Caption box: The caption box is where you can edit the caption for the image. The caption is saved to a text file with the same name as the image file, but with a .txt extension. The app will signify that a caption text has been modified from its source by changing the background color to pink. The caption is saved to its caption file when you click the Update button or the Save Edited Captions button (near the top).
 - Copy button (below caption box): Make this caption text the source for pasting into other caption boxes. This is useful for when you can't or don't want to use copy and paste keyboard shortcuts.
 - Paste button: Paste the copied caption text into this caption box.
+- Filter captions: filter rows by matching text in captions.
 
+**Edit Menu Features**
+- Undo Last Automated Action: Although full undo is not implemented, you can undo the last automated action, such as the others in the Edit Menu Features.
+- All Lowercase: change the text in all captions to lowercase.
+- Remove Duplicate Tags: remove duplicate tags from all captions.
+- Replace Caption Text: replace text in all captions, find text to replace, regular expression allowed, case insensitive allowed. This is useful because [AI visual language models](#ai-captioning) will create generic captions based on what it can identify in the image. You may want to replace some generic tags with trigger words that can be used in LoRAs. This dialog box is draggable to move out of the way.
+
+In this example screenshot, you can see single directory view (instead of comparing to right directory). The rows are filtered by "grass". The "Replace Text in Captions" dialog is shown. It also shows the updated arrangement of elements within the table cells (changed in this version).
+
+![Replace Text Screenshot](replace_text_screenshot.png)
 
 ## Preferences (Configuration)
 To open up the Preferences dialog, click on the Preferences menu button in the top left corner of the app.
@@ -87,4 +99,4 @@ Special thanks to the open-source community for their contributions and support.
 - [OpenJS Foundation and Electron contributors](https://www.electronjs.org/)
 - [Node.js](https://nodejs.org/)
 - Vectors and icons by [SVG Repo](https://www.svgrepo.com)
-- [Picnic minimal CSS framework](https://picnicss.com/docs)
+- [Picnic minimal CSS framework](https://picnicss.com/documentation)

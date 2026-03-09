@@ -22,7 +22,7 @@ ipcMain.on('read-directories', (event, { leftDir, rightDir }) => {
   };
 
   const leftFiles = getFiles(leftDir);
-  const rightFiles = getFiles(rightDir);
+  const rightFiles = (rightDir) ? getFiles(rightDir) : [];
   
   event.reply('directories-read', { leftFiles, rightFiles });
 });
@@ -145,8 +145,10 @@ function getConfig() {
   const configPath = path.join(path.dirname(__dirname), 'app_config.json');
   const config = (fs.existsSync(configPath)) ? JSON.parse(readFileSync(configPath, 'utf8')) : {};
 
-  if (commandLineArgs.length >= 2) {
+  if (commandLineArgs.length >= 1) {
     config.leftDirectory = commandLineArgs[0];
+  }
+  if (commandLineArgs.length >= 2) {
     config.rightDirectory = commandLineArgs[1];
   }
 
@@ -180,6 +182,27 @@ function createWindow() {
       label: 'Preferences',
       click: () => win.webContents.send("menu-clicked", "preferences")
     },
+    {
+      label: 'Edit',
+      submenu: [
+        {
+          label: 'Undo Last Automated Action',
+          click: () => win.webContents.send('menu-clicked', 'undo-automated')
+        },
+        {
+          label: 'All Lowercase',
+          click: () => win.webContents.send('menu-clicked', 'all-lowercase')
+        },
+        {
+          label: 'Remove Duplicate Tags',
+          click: () => win.webContents.send('menu-clicked', 'remove-duplicate-tags')
+        },
+        {
+          label: 'Replace Caption Text',
+          click: () => win.webContents.send('menu-clicked', 'search-and-replace')
+        },
+      ]
+    }
   ];
 
   const menu = Menu.buildFromTemplate(menuTemplate);
@@ -195,5 +218,12 @@ app.whenReady().then(createWindow);
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// *** On macOS, it's common to re-create a window in the app when the dock icon is clicked and there are no other windows open. ***
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
   }
 });

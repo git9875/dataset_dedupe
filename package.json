@@ -1,6 +1,6 @@
 {
   "name": "media_dataset_editor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "backend/main.js",
   "scripts": {
     "start": "electron .",

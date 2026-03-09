@@ -14,27 +14,35 @@
     <div class="flex two">
       <div><input type="text" id="left-directory" placeholder="Enter first directory path" aria-label="Enter first directory path" class="small" /></div>
       <div><input type="text" id="right-directory" placeholder="Enter second directory path" aria-label="Enter second directory path" class="small" /></div>
-      <div><input type="search" id="searchBox" placeholder="Search filter media files" aria-label="Enter search text to filter the media files" class="small" /></div>
-      <div><button id="start-button" class="small tertiary">Compare <img src="icons/compare1.svg" alt="compare icon" class="svgrepro-icon"/></button></div>
+      <div><input type="search" id="searchBox" placeholder="Search filter media file names" aria-label="Enter search text to filter the media file names" class="small" /></div>
+      <div><button id="start-button" class="small tertiary">Display <img src="icons/compare1.svg" alt="compare icon" class="svgrepro-icon"/></button></div>
     </div>
-    <div class="flex two">
-      <div><button id="update-captions" class="small success">Save Edited Captions <img src="icons/save.svg" alt="save icon" class="svgrepro-icon"/></button></div>
 
-      <div id="ai-caption-row">
-        <h4>AI Captions</h4>
-        <div class="flex four">
-          <select id="ai-model-select" aria-label="Select AI model" class="three-fourth">
-            <option value="" disabled selected>Select a model</option>
-          </select>
-          <button id="load-ai-model" class="fourth">Load Model <img src="icons/ai_brain.svg" alt="ai brain icon" class="svgrepro-icon bigger"/></button>
-        </div>
-        <div class="flex four">
-          <select id="ai-prompt-select" aria-label="Select AI prompt" class="three-fourth">
-            <option value="" disabled selected>Select a prompt</option>
-          </select>
-          <label for="ai-prompt-select" class="fourth">Prompt</label>
-        </div>
-        <div id="load-ai-model-message"></div>
+
+    <div>
+      <div>
+        <button id="update-captions" class="small success">Save Edited Captions <img src="icons/save.svg" alt="save icon" class="svgrepro-icon"/></button>
+        <span id="unsaved-message"></span>
+      </div>
+      <div>
+        <input type="search" id="caption-filter-box" placeholder="Filter search within captions" aria-label="Enter search text to filter within captions" class="small" />
+      </div>
+    </div>
+
+    <div id="ai-caption-row" class="flex two">
+      <h4>AI Captions</h4>
+      <div id="load-ai-model-message"></div>
+      <div class="flex four">
+        <select id="ai-model-select" aria-label="Select AI model" class="three-fourth">
+          <option value="" disabled selected>Select a model</option>
+        </select>
+        <button id="load-ai-model" class="fourth">Load Model <img src="icons/ai_brain.svg" alt="ai brain icon" class="svgrepro-icon bigger"/></button>
+      </div>
+      <div class="flex four">
+        <select id="ai-prompt-select" aria-label="Select AI prompt" class="three-fourth">
+          <option value="" disabled selected>Select a prompt</option>
+        </select>
+        <label for="ai-prompt-select" class="fourth">Prompt</label>
       </div>
     </div>
 
@@ -42,10 +50,12 @@
       <table id="mediaTable" aria-label="Media Directory Comparison Table" class="full">
         <thead>
           <tr>
+            <th aria-label="row number column">#</th>
             <th aria-label="left directory column">Left Directory <button id="auto-captions-left" class="small warning">Get AI Captions <img src="icons/file_ai.svg" alt="file ai icon" class="svgrepro-icon"/></button></th>
             <th aria-label="right directory column">Right Directory <button id="auto-captions-right" class="small warning">Get AI Captions <img src="icons/file_ai.svg" alt="file ai icon" class="svgrepro-icon"/></button></th>
           </tr>
           <tr id="progress-container">
+            <td aria-label="row number column"></td>
             <td aria-label="left directory column">
               <progress id="progress-bar-left" value="0" max="100">0%</progress>
               <div id="progress-text-left" class="progress-text"></div>
@@ -64,7 +74,61 @@
       </table>
     </div>
 
-    
+
+    <!-- <label for="search-replace-modal-control" class="button">Show Search Replace</label> -->
+    <div class="modal" aria-labelledby="search-replace-modal-header" id="search-replace-modal">
+      <input type="checkbox" id="search-replace-modal-control">
+      <label for="search-replace-modal-control" class="overlay"></label>
+      <article id="search-replace-modal-display">
+        <header id="search-replace-modal-header-wrapper"></header>
+          <h3 id="search-replace-modal-header">Replace Text in Captions</h3>
+          <label for="search-replace-modal-control" class="close">&times;</label>
+        </header>
+
+        <section class="content">
+          <div class="full row">
+            <label for="find-text">Find <small>(JavaScript Regular Expression allowed)</small></label>
+            <input type="text" id="find-text" placeholder="Enter text to find" aria-label="Enter text to find" />
+          </div>
+          <div class="full row">
+            <label for="replace-text">Replace <small>(JavaScript Regular Expression allowed)</small></label>
+            <input type="text" id="replace-text" placeholder="Enter text to replace" aria-label="Enter text to replace" />
+          </div>
+          <div class="flex three row">
+            <div>
+              <input type="checkbox" id="search-replace-case-insensitive" aria-label="Case Insensitive" />
+              <label for="search-replace-case-insensitive">Case Insensitive</label>
+            </div>
+            <div>
+              <input type="checkbox" id="search-replace-is-regex" aria-label="Is Regex" />
+              <label for="search-replace-is-regex">Is Regex</label>
+            </div>
+            <div>
+              <button id="test-search-replace-button" class="small">Test <img src="icons/search-sort.svg" alt="search icon" class="svgrepro-icon"/></button>
+            </div>
+          </div>
+          <div class="full row">
+            <textarea id="test-search-replace-text" placeholder="Enter text to test search & replace only here" aria-label="Enter text to test search and replace only here" rows="3"></textarea>
+          </div>
+          <div class="flex three row">
+            <div>Limit to row range (inclusive):</div>
+            <div><input type="number" id="search-replace-start-row" placeholder="Start row" aria-label="Start row" min="0" /></div>
+            <div><input type="number" id="search-replace-end-row" placeholder="End row" aria-label="End row" min="0" /></div>
+          </div>
+        </section>
+
+        <footer>
+          <button id="replace-all-button" class="warning">Replace All <img src="icons/search-sort.svg" alt="search icon" class="svgrepro-icon"/></button>
+          <label for="search-replace-modal-control" class="button dangerous">Close</label>
+        </footer>
+
+      </article>
+    </div>
+
+
+
+
+
     <!-- <label for="preferences-modal-control" class="button">Show Preferences</label> -->
     <div class="modal" aria-labelledby="preferences-modal-header" id="preferences-modal">
       <input type="checkbox" id="preferences-modal-control">

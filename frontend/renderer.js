@@ -3,6 +3,7 @@ const store = require('./store');
 const fileOps = require('./fileops');
 const configManager = require('./config_manager');
 const aiCaption = require('./ai_caption');
+const { get } = require('http');
 
 // (personal preference) I like to shorten common HTML DOM function calls to make it easier to skim and require fewer key strokes. (simpler and more concise)
 const getElId = document.getElementById.bind(document);
@@ -26,8 +27,10 @@ window.MY_API.onConfigured((configuration) => {
     rightDirectory = config.rightDirectory;
   }
 
-  if (leftDirectory && rightDirectory) {
+  if (leftDirectory) {
     getElId('left-directory').value = leftDirectory;
+  }
+  if (rightDirectory) {
     getElId('right-directory').value = rightDirectory;
   }
 
@@ -36,8 +39,49 @@ window.MY_API.onConfigured((configuration) => {
 
 // show the preferences editor
 window.MY_API.onMenuClicked((menuItemClicked) => {
+  const promiseArray = [];
+
   if (menuItemClicked == 'preferences') {
     getElId('preferences-modal-control').checked = true;
+  }
+  else if (menuItemClicked == 'undo-automated') {
+    const captionTextAreaIds = getAllCaptionTextIds();
+    for (const captionTextAreaId of captionTextAreaIds) {
+      promiseArray.push(undoLastAutomatedAction(captionTextAreaId));
+    }
+    
+    Promise.all(promiseArray).then(() => {
+      checkAllCaptionsUpdateDirtyState();
+    });
+
+    lastAutomatedCaptionTextChanges = {};
+  }
+  else if (menuItemClicked == 'all-lowercase') {
+    lastAutomatedCaptionTextChanges = {};
+
+    const captionTextAreaIds = getAllCaptionTextIds();
+    for (const captionTextAreaId of captionTextAreaIds) {
+      promiseArray.push(makeAllLowercase(captionTextAreaId));
+    }
+    
+    Promise.all(promiseArray).then(() => {
+      checkAllCaptionsUpdateDirtyState();
+    });
+  }
+  else if (menuItemClicked == 'remove-duplicate-tags') {
+    lastAutomatedCaptionTextChanges = {};
+
+    const captionTextAreaIds = getAllCaptionTextIds();
+    for (const captionTextAreaId of captionTextAreaIds) {
+      promiseArray.push(removeDuplicateTags(captionTextAreaId));
+    }
+    
+    Promise.all(promiseArray).then(() => {
+      checkAllCaptionsUpdateDirtyState();
+    });
+  }
+  else if (menuItemClicked == 'search-and-replace') {
+    getElId('search-replace-modal-control').checked = true;
   }
 });
 
@@ -46,10 +90,20 @@ document.addEventListener('DOMContentLoaded', () => {
   getElId('start-button').addEventListener('click', async () => {
     leftDirectory = getElId('left-directory').value;
     rightDirectory = getElId('right-directory').value;
-    if (leftDirectory && rightDirectory) {
+
+    // hide the right column if right directory is not provided. The media table will be styled to single-directory mode in that case.
+    if (!rightDirectory && !getElId('mediaTable').classList.contains('single-directory')) {
+      getElId('mediaTable').classList.add('single-directory');
+      const rightColumn = getElId('right-column');
+      if (rightColumn) {
+        rightColumn.classList.add('hidden');
+      }
+    }
+
+    if (leftDirectory) {
       renderMediaTable();
     } else {
-      alert('Please enter both directory paths');
+      alert('Please enter directory path(s)');
     }
   });
 
@@ -67,13 +121,34 @@ document.addEventListener('DOMContentLoaded', () => {
   makeClickEvent(getElId('load-ai-model'), aiCaption.loadAIModel);
   makeClickEvent(getElId('auto-captions-left'), () => aiCaption.startDiretoryAiCaption('left'));
   makeClickEvent(getElId('auto-captions-right'), () => aiCaption.startDiretoryAiCaption('right'));
+  makeClickEvent(getElId('test-search-replace-button'), () => testSearchReplace());
+  makeClickEvent(getElId('replace-all-button'), () => replaceAll());
 
   configManager.setPreferenceFormEventHanders();
-});
+  enableDraggableSearchReplaceModal();
+
+  getElId('caption-filter-box').addEventListener('input', function() {
+    const filterText = this.value.toLowerCase();
+    const captionTextAreaIds = getAllCaptionTextIds();
+
+    for (const captionTextAreaId of captionTextAreaIds) {
+      const captionTextArea = getElId(captionTextAreaId);
+      const captionText = captionTextArea.value.toLowerCase();
+
+      // Hide the tr element that contains this caption textarea if the caption text doesn't include the filter text, otherwise show it. This allows users to quickly filter and find media files based on their captions.
+      if (captionText.includes(filterText)) {
+        captionTextArea.closest('tr').style.display = '';
+      } else {
+        captionTextArea.closest('tr').style.display = 'none';
+      }
+    }
+  });
+
+}); // end of DOMContentLoaded event listener
 
 
 
-function createMediaComponent(fileContainer, side) {
+function createMediaComponent(fileContainer, side, rowIndex) {
   const mediaFile = fileContainer[side+'media'];
   const fileBaseName = fileContainer['fileBaseName'];
   const fileHash = fileContainer['fileHash'];
@@ -84,10 +159,10 @@ function createMediaComponent(fileContainer, side) {
   container.id = idPrefix + 'cell';
 
   const mediaInfoContainer = document.createElement('div');
-  mediaInfoContainer.className = 'flex five';
+  mediaInfoContainer.className = 'flex two';
 
   const previewContainer = document.createElement('div');
-  previewContainer.className = 'four-fifth';
+  previewContainer.className = 'half';
 
   const deleteBtn = document.createElement('button');
   deleteBtn.innerHTML = 'Delete <img src="icons/trash.svg" alt="trash can icon" class="svgrepro-icon"/>';
@@ -98,7 +173,7 @@ function createMediaComponent(fileContainer, side) {
   makeClickEvent(deleteBtn, deleteBtnFunction);
 
   const mediaBtnContainer = document.createElement('div');
-  mediaBtnContainer.className = `fifth media-btn-container`;
+  mediaBtnContainer.className = `half media-btn-container`;
   mediaBtnContainer.appendChild(deleteBtn);
 
   const preview = document.createElement('img');
@@ -134,18 +209,8 @@ function createMediaComponent(fileContainer, side) {
   captionBox.id = idPrefix + 'caption';
   captionBox.setAttribute("placeholder", "Enter caption or labels here.");
   captionBox.setAttribute("aria-label", "Enter caption or labels here.");
-  captionBox.addEventListener('change', (event) => {
-    const [textFileHash, textSide, textIdSuffix] = getIdHashParts(event.target.id);
-    const textFile = getFileFromHashSide(textFileHash, textSide, true);
-    
-    if (captionBox.value !== textFile.caption) {
-      if (! captionBox.classList.contains('dirty-caption')) {
-        captionBox.classList.add('dirty-caption');
-      }
-    } else {
-      captionBox.classList.remove('dirty-caption');
-    }
-  });
+  captionBox.dataset.rowIndex = rowIndex;
+  captionBox.addEventListener('change', captionBoxChangeEventHandler);
 
   const buttons = document.createElement('div');
   buttons.className = 'media-buttons flex three';
@@ -184,17 +249,11 @@ function createMediaComponent(fileContainer, side) {
 
   container.appendChild(mediaInfoContainer);
 
-  if (side === 'left') {
-    mediaInfoContainer.appendChild(previewContainer);
-    mediaInfoContainer.appendChild(mediaBtnContainer);
-  }
-  else { // in the right td cell, the send media icon should be on the left
-    mediaInfoContainer.appendChild(mediaBtnContainer);
-    mediaInfoContainer.appendChild(previewContainer);
-  }
+  mediaInfoContainer.appendChild(previewContainer);
+  mediaInfoContainer.appendChild(mediaBtnContainer);
 
-  container.appendChild(captionBox);
-  container.appendChild(buttons);
+  mediaBtnContainer.appendChild(captionBox);
+  mediaBtnContainer.appendChild(buttons);
 
   return container;
 }
@@ -203,6 +262,7 @@ function createMediaComponent(fileContainer, side) {
 
 async function renderMediaTable() {
   mediaTableBody.innerHTML = '';
+  lastAutomatedCaptionTextChanges = {};
 
   // Fetch files from directories
   const twoDirs = await fileOps.readDirectories(leftDirectory, rightDirectory);
@@ -211,18 +271,23 @@ async function renderMediaTable() {
   store.replaceMatchedFiles( newMatchedFiles );
   const matchedFiles = store.getMatchedFiles();
   const fileHashes = {};
+  let rowIndex = 0;
 
   for (const fileBaseName in matchedFiles) {
     const row = document.createElement('tr');
     const fileHash = matchedFiles[fileBaseName]['fileHash'];
     fileHashes[fileHash] = fileBaseName;
 
+    const rowNumberCell = document.createElement('td');
+    rowNumberCell.textContent = rowIndex;
+    row.appendChild(rowNumberCell);
+
     if ('leftmedia' in matchedFiles[fileBaseName]) {
       const side = 'left';
-      const tdChild = createMediaComponent(matchedFiles[fileBaseName], side);
+      const tdChild = createMediaComponent(matchedFiles[fileBaseName], side, rowIndex);
       const hasCompanion = ('rightmedia' in matchedFiles[fileBaseName]);
 
-      if (!hasCompanion) {
+      if (!hasCompanion && rightDirectory) {
         const copyCellBtn = document.createElement('button');
         copyCellBtn.innerHTML = 'Copy <img src="icons/copy1.svg" alt="copy icon" class="svgrepro-icon"/><img src="icons/send_line.svg" alt="send line icon" class="svgrepro-icon"/>';
         copyCellBtn.setAttribute('aria-label', "Copy this media file and caption to the other side");
@@ -247,7 +312,7 @@ async function renderMediaTable() {
 
     if ('rightmedia' in matchedFiles[fileBaseName]) {
       const side = 'right';
-      const tdChild = createMediaComponent(matchedFiles[fileBaseName], side);
+      const tdChild = createMediaComponent(matchedFiles[fileBaseName], side, rowIndex);
       const hasCompanion = ('leftmedia' in matchedFiles[fileBaseName]);
 
       if (!hasCompanion) {
@@ -274,11 +339,25 @@ async function renderMediaTable() {
     }
 
     mediaTableBody.appendChild(row);
+    rowIndex++;
   }
 
   store.replaceFileHashes(fileHashes)
 }
 
+function captionBoxChangeEventHandler(event) {
+  const [textFileHash, textSide, textIdSuffix] = getIdHashParts(event.target.id);
+  const textFile = getFileFromHashSide(textFileHash, textSide, true);
+  const captionBox = event.target;
+  
+  if (captionBox.value !== textFile.caption) {
+    if (! captionBox.classList.contains('dirty-caption')) {
+      captionBox.classList.add('dirty-caption');
+    }
+  } else {
+    captionBox.classList.remove('dirty-caption');
+  }
+}
 
 function copyTextFromFileIntoTextArea(fileHash, side, textFilePath) {
   const idPrefix = `${fileHash}-${side}-`;
@@ -508,10 +587,21 @@ async function updateDirtyCaptions() {
     return;
   }
 
+  const matchedFiles = store.getMatchedFiles();
+  const fileHashes = store.getFileHashes();
+
   for (const captionBox of dirtyCaptionBoxes) {
     const captionId = captionBox.id;
     const [fileHash, side, idSuffix] = getIdHashParts(captionId);
-    const textFile = getFileFromHashSide(fileHash, side, true);
+    // this matches the textbox file info much more efficiently than getFileFromHashSide()
+  	const secondKey = side+'text';
+    const fileBaseName = fileHashes[fileHash];
+
+    if (!(secondKey in matchedFiles[fileBaseName])) {
+      continue;
+    }
+
+    const textFile = matchedFiles[fileBaseName][secondKey];
     const textFilePath = textFile['path'];
     const captionText = captionBox.value;
 
@@ -520,4 +610,223 @@ async function updateDirtyCaptions() {
       textFile['caption'] = captionText;
     });
   }
+
+  lastAutomatedCaptionTextChanges = {};
+}
+
+async function checkAllCaptionsUpdateDirtyState() {
+  const captionBoxes = queryClass('caption-text');
+  const matchedFiles = store.getMatchedFiles();
+  const fileHashes = store.getFileHashes();
+  let countOfDirtyCaptions = 0;
+
+  for (const captionBox of captionBoxes) {
+    const captionId = captionBox.id;
+    const [fileHash, side, idSuffix] = getIdHashParts(captionId);
+    // this matches the textbox file info much more efficiently than getFileFromHashSide()
+  	const secondKey = side+'text';
+    const fileBaseName = fileHashes[fileHash];
+
+    if (!(secondKey in matchedFiles[fileBaseName])) {
+      continue;
+    }
+
+    const textFile = matchedFiles[fileBaseName][secondKey];
+    const captionText = captionBox.value;
+
+    if (captionText !== textFile.caption) {
+      if (! captionBox.classList.contains('dirty-caption')) {
+        captionBox.classList.add('dirty-caption');
+        countOfDirtyCaptions++;
+      }
+    } else {
+      captionBox.classList.remove('dirty-caption');
+    }
+  }
+
+  getElId('unsaved-message').textContent = countOfDirtyCaptions ? `Unsaved Captions: ${countOfDirtyCaptions}` : '';
+}
+
+
+
+let isDraggingSearchReplaceModal = false;
+let offsetXSearchReplaceModal = 0, offsetYSearchReplaceModal = 0;
+
+
+async function enableDraggableSearchReplaceModal() {
+  const dialog = getElId('search-replace-modal-display');
+  const header = getElId('search-replace-modal-header-wrapper');
+
+  header.addEventListener('mousedown', (e) => {
+      isDraggingSearchReplaceModal = true;
+      // Calculate the offset from the mouse position to the dialog's top-left corner
+      offsetXSearchReplaceModal = e.clientX - dialog.getBoundingClientRect().left;
+      offsetYSearchReplaceModal = e.clientY - dialog.getBoundingClientRect().top;
+      // Optional: Add a class for styling while dragging
+      dialog.classList.add('dragging');
+  });
+
+  document.addEventListener('mousemove', (e) => {
+      if (!isDraggingSearchReplaceModal) return;
+
+      // Prevent default browser behavior (e.g., text selection)
+      e.preventDefault();
+
+      // Calculate new position relative to the viewport
+      const newX = e.clientX - offsetXSearchReplaceModal;
+      const newY = e.clientY - offsetYSearchReplaceModal;
+
+      // Update the dialog's position
+      dialog.style.left = `${newX}px`;
+      dialog.style.top = `${newY}px`;
+      
+      // Remove the initial center transform to avoid conflict with top/left positioning
+      dialog.style.transform = 'none'; 
+  });
+
+  document.addEventListener('mouseup', () => {
+      isDraggingSearchReplaceModal = false;
+      dialog.classList.remove('dragging');
+  });
+}
+
+
+let lastAutomatedCaptionTextChanges = {}; // captionTextId: { previousCaption: '', newCaption: '' }
+async function saveAutomatedCaptionChange(captionTextId, previousCaption, newCaption) {
+  lastAutomatedCaptionTextChanges[captionTextId] = { previousCaption, newCaption };
+}
+
+// In this renderer script, we need to keep a short/last history of the last automated text caption changes, so that we can undo them when user click the menu. This is because the undo of automated actions is more likely to be used immediately after the action, and we want it to be fast. If we want to keep a long history of changes, then we can revert all of the caption text boxes back to the previous state.
+// This function performs the undo of last automated action, which could be either AI captioning or bulk search and replace. When user click undo, the caption text boxes will be reverted to the previous state before the automated action, and the text files will NOT be updated.
+async function undoLastAutomatedAction(captionTextId) {
+  const lastAction = lastAutomatedCaptionTextChanges[captionTextId];
+  if (!lastAction) return;
+
+  const captionBox = getElId(captionTextId);
+  if (!captionBox) return;
+
+  captionBox.value = lastAction.previousCaption;
+  delete lastAutomatedCaptionTextChanges[captionTextId];
+}
+
+async function makeAllLowercase(captionTextId) {
+  const captionBox = getElId(captionTextId);
+  if (!captionBox) return;
+
+  const previousCaption = captionBox.value;
+  const newCaption = previousCaption.toLowerCase();
+
+  if (previousCaption === newCaption) {
+    return; // no change, no need to save or mark as dirty
+  }
+
+  await saveAutomatedCaptionChange(captionTextId, previousCaption, newCaption);
+
+  captionBox.value = newCaption;
+}
+
+async function removeDuplicateTags(captionTextId) {
+  const captionBox = getElId(captionTextId);
+  if (!captionBox) return;
+
+  const previousCaption = captionBox.value;
+  const words = previousCaption.split(/,\s*/);
+  const uniqueWords = [...new Set(words)];
+  const newCaption = uniqueWords.join(', ');
+
+  if (previousCaption == newCaption) {
+    return; // no change, no need to save or mark as dirty
+  }
+
+  await saveAutomatedCaptionChange(captionTextId, previousCaption, newCaption);
+
+  captionBox.value = newCaption;
+}
+
+async function searchAndReplace(captionTextId, searchText, replaceText, isRegex=false, caseInsensitive=false) {
+  const captionBox = getElId(captionTextId);
+  if (!captionBox) return;
+
+  const previousCaption = captionBox.value;
+  let newText = previousCaption;
+
+  if (isRegex) {
+    const flags = caseInsensitive ? 'gi' : 'g';
+    newText = newText.replace(new RegExp(searchText, flags), replaceText);
+  } else {
+    const searchFlags = caseInsensitive ? 'gi' : 'g';
+    newText = newText.replace(new RegExp(escapeRegExp(searchText), searchFlags), replaceText);
+  }
+
+  const newCaption = newText;
+
+  if (previousCaption === newCaption) {
+    return; // no change, no need to save or mark as dirty
+  }
+
+  captionBox.value = newCaption;
+
+  if (captionTextId !== 'test-search-replace-text') {
+    await saveAutomatedCaptionChange(captionTextId, previousCaption, newCaption);
+    captionBox.classList.add('dirty-caption');
+  }
+}
+
+function escapeRegExp(string) {
+  // $& means the whole matched string
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); 
+}
+
+function getAllCaptionTextIds() {
+  const captionTextAreas = document.querySelectorAll('.caption-text');
+  const captionTextIds = Array.from(captionTextAreas).map(textArea => textArea.id);
+  return captionTextIds;
+}
+
+async function testSearchReplace() {
+  const searchText = getElId('find-text').value;
+  const replaceText = getElId('replace-text').value;
+  const caseInsensitive = getElId('search-replace-case-insensitive').checked;
+  const isRegex = getElId('search-replace-is-regex').checked;
+  searchAndReplace('test-search-replace-text', searchText, replaceText, isRegex, caseInsensitive);
+}
+
+async function replaceAll() {
+  lastAutomatedCaptionTextChanges = {};
+
+  const searchText = getElId('find-text').value;
+  const replaceText = getElId('replace-text').value;
+  const caseInsensitive = getElId('search-replace-case-insensitive').checked;
+  const isRegex = getElId('search-replace-is-regex').checked;
+  const captionTextIds = getAllCaptionTextIds();
+  const startRow = getElId('search-replace-start-row').value;
+  const endRow = getElId('search-replace-end-row').value;
+  const searchAndReplacePromises = [];
+
+  if (!captionTextIds || captionTextIds.length === 0) return;
+
+  for (const captionTextId of captionTextIds) {
+    const captionBox = getElId(captionTextId);
+
+    // checkVisibility is needed because some caption text areas might be hidden due to filtering, and we don't want to perform search and replace on those hidden ones. Also skip the test-search-replace-text which is used for testing and previewing the search and replace results.
+    if (!captionBox || captionBox.id === 'test-search-replace-text' || !captionBox.checkVisibility()) {
+      continue;
+    }
+
+    const rowIndex = parseInt(captionBox.dataset.rowIndex);
+    if ((startRow && rowIndex < startRow) || (endRow && rowIndex > endRow)) {
+      continue; // skip rows outside of the specified range
+    }
+
+    try {
+      let searchPromise = searchAndReplace(captionTextId, searchText, replaceText, isRegex, caseInsensitive);
+      searchAndReplacePromises.push(searchPromise);
+    }
+    catch (error) {
+      console.error(`Error processing caption ${captionTextId}:`, error);
+    }
+  }
+
+  await Promise.all(searchAndReplacePromises);
+  checkAllCaptionsUpdateDirtyState();
 }

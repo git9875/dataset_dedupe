@@ -63,7 +63,9 @@ async function fillInAIModelsAndPrompts(captionAiEnabled, captionAiUrl) {
       promptSelect.appendChild(option);
     }
 
-    getElId('ai-caption-row').style.display = 'block';
+    if (captionAiEnabled) {
+      getElId('ai-caption-row').style.display = 'block';
+    }
   }
 }
 
